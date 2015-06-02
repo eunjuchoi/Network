@@ -30,7 +30,8 @@ int main(int argc, char *argv[])
 	
 	//pthread_mutex_init(&mutx, NULL);
 	// pthread_mutex_lock(&mutx);
-	// pthread_mutex_unlock(&mutx);
+	// pthread_mutex_unlock(&mutx); 
+	// 뮤텍스 이제 이용가능
 
 	sprintf(name, "%s", argv[3]);
 	sock=socket(PF_INET, SOCK_STREAM, 0);
@@ -43,11 +44,11 @@ int main(int argc, char *argv[])
 	if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))==-1)
 		error_handling("connect() error");
 
-	//transfer client name
 	write(sock, name, NAME_SIZE);
+	// ㄴ 이름을 서버쪽으로 보냄.
 
 	printf("\n\n");
-	printf("CONNECTING..... \n<Menu>\n1.credit\n2.send\n3.transrate\n4.exit\n");
+	printf("CONNECTING..... \n<Menu>\n1.credit\n2.send\n3.exit\n");
 
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
 	pthread_join(snd_thread, &thread_return);
@@ -67,6 +68,11 @@ void * send_msg(void * arg)   // send thread main
 	char last_msg[BUF_SIZE] = {NULL};
 	char t_name_msg[BUF_SIZE] = {NULL};
 	char noUse[BUF_SIZE] = {NULL};
+	const char enter[BUF_SIZE] = {"\n"};
+	const char whisper[BUF_SIZE] = {"/whisper\n"};
+
+	// ㄴ (진행중)
+
 
 	while(1) 
 	{
@@ -112,7 +118,7 @@ void * send_msg(void * arg)   // send thread main
 
 			//transfer file size
 			printf("File transfer start \n(File Size : %d Byte)\n", fSize); 
-			write(sock, &fSize, sizeof(int));
+			write(sock, &fSize, sizeof(int)); // 파일 크기정보 먼저 보냄.
 			fSize = 0;
 
 			//transfer setfname
@@ -152,10 +158,6 @@ void * send_msg(void * arg)   // send thread main
 			default:
 				break;
 			}
-		}
-		////////////////////////////////////////////////////////transrate
-		if(!strcmp(msg,"transrate\n"))
-		{
 		}
 	}
 	return NULL;
