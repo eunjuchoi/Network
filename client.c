@@ -129,11 +129,15 @@ void * send_msg(void * arg)   // send thread main
 					for(i=0; i<Flength; i++) {
 						last_msg[i] = t_msg[i];
 					} 
-					write(sock, last_msg, BUF_SIZE);
+					write(sock, last_msg, BUF_SIZE); ////////////transfer rate
 					write(sock, "file end", BUF_SIZE);
+					
+
 					break;
 				}
 				write(sock, t_msg, BUF_SIZE); 
+				printf("%d \n", Flength);
+				usleep(1000);				///////time
 			}
 			fclose(fp);
 			printf("File transfer finish \n");			
