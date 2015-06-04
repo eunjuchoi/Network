@@ -81,6 +81,7 @@ void * handle_clnt(void * arg)
 {
 	int clnt_sock=*((int*)arg);
 	int str_len=0, i;
+        int str_str=0;
 	int fSize = 0;
 	const char sig_file[BUF_SIZE] = {"send file"};
 	const char Fmsg_end[BUF_SIZE] = {"file end"};
@@ -109,10 +110,17 @@ void * handle_clnt(void * arg)
 			//receive and save file
 			while(1)
 			{		
-				read(clnt_sock, file_msg, BUF_SIZE);
-				if(!strcmp(file_msg, Fmsg_end)) 
-					break;
-				fwrite(file_msg, 1, BUF_SIZE, fp);
+				str_str = read(clnt_sock, file_msg, BUF_SIZE);
+                                printf("file_msg :%d str_str: %d\n",strlen(file_msg), str_str);
+				if(str_str < 0){ 
+                                    printf("Receive Error\n");
+				    break;
+                                }
+                                if(str_str == 0){
+                                    printf("Receive OK\n");
+                                    break;
+                                }
+				fwrite(file_msg, 1, str_str, fp);
 			}
 
 			fclose(fp);

@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
 	pthread_join(snd_thread, &thread_return);
-	close(sock);  
+	//close(sock);  
 	return 0;
 }
 void * send_msg(void * arg)   // send thread main
@@ -125,22 +125,22 @@ void * send_msg(void * arg)   // send thread main
 			while(1) {		
 				Flength = fread(t_msg, 1 , BUF_SIZE, fp);
 
-				if(Flength != BUF_SIZE) {
-					for(i=0; i<Flength; i++) {
-						last_msg[i] = t_msg[i];
-					} 
-					write(sock, last_msg, BUF_SIZE); ////////////transfer rate
-					write(sock, "file end", BUF_SIZE);
-					
+                                if(Flength < 0){
+                                    printf("Sending Fail\n");
+                                    break;
+                                }
+                                if(Flength == 0){
+                                    printf("Sending OK\n");
+                                    break;
+                                }
 
-					break;
-				}
-				write(sock, t_msg, BUF_SIZE); 
+				write(sock, t_msg, Flength); 
 				printf("%d \n", Flength);
-				usleep(1000);				///////time
+				//usleep(1000);				///////time
 			}
 			fclose(fp);
-			printf("File transfer finish \n");			
+			printf("File transfer finish \n");
+                        close(sock);
 		}
 
 		////////////////////////////////////////////////////////credit
