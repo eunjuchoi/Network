@@ -12,8 +12,8 @@
 void * send_msg(void * arg);
 void error_handling(char * msg);
 	
-char name[NAME_SIZE];
-char msg[BUF_SIZE];
+char name[NAME_SIZE]={null};
+char msg[BUF_SIZE]={null};
 int setFName = 0;
 //pthread_mutex_t mutx;
 
