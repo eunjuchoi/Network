@@ -153,6 +153,9 @@ void * send_msg(void * arg)   // send thread main
 			case 20123423:
 				printf("hi\n");
 				break;
+			case 20133277:
+				printf("seongsil\n");
+				break;
 			default:
 				break;
 			}
