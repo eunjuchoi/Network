@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-#define BUF_SIZE 128
+#define BUF_SIZE 10000
 #define MAX_CLNT 2
 #define NAME_SIZE 20
 
@@ -61,9 +61,9 @@ int main(int argc, char *argv[])
 		pthread_mutex_lock(&mutx);
 
 		clnt_socks[clnt_cnt]=clnt_sock;
-		//receive client name
 		read(clnt_sock, clnt_name, NAME_SIZE);		
 		strcpy(clnt_names[clnt_cnt++], clnt_name);
+		// ㄴ 클라이언트로부터 받은 접속자 이름입력
 		pthread_mutex_unlock(&mutx);
 
 		
@@ -81,14 +81,19 @@ void * handle_clnt(void * arg)
 {
 	int clnt_sock=*((int*)arg);
 	int str_len=0, i;
-        int str_str=0;
 	int fSize = 0;
 	const char sig_file[BUF_SIZE] = {"send file"};
 	const char Fmsg_end[BUF_SIZE] = {"file end"};
 	char msg[BUF_SIZE] = {NULL};
 	char file_msg[BUF_SIZE] = {NULL};
 	char setfname[BUF_SIZE] = {NULL};
-
+        int length =0;
+        int pos=0;
+        int recvRate=0;
+        int sendRate=0;
+        int Flength=0;
+        
+        char t_msg[BUF_SIZE] = {NULL};
 	while((str_len=read(clnt_sock, msg, BUF_SIZE))!=0) 
 	{
 
@@ -98,42 +103,57 @@ void * handle_clnt(void * arg)
 			int fileGo = NULL;
 			char tmpName[NAME_SIZE]= {NULL};
 
-			//receive file size, name
+			//receive file size, name , rate
 			read(clnt_sock, &fSize, sizeof(int));
 			printf("File size %d Byte\n", fSize);
 			read(clnt_sock, setfname, BUF_SIZE);
+                        read(clnt_sock,&recvRate, sizeof(int));
+                        read(clnt_sock,&sendRate, sizeof(int));
+                 
+
 			printf("received file name : %s\n",setfname);
-			
+			 
+                       //file receving 
 			FILE *fp;
 			fp = fopen(setfname, "wb"); 
-		
-			//receive and save file
-			while(1)
+                        	
+			while(length<fSize)
 			{		
-				str_str = read(clnt_sock, file_msg, BUF_SIZE);
-                                printf("file_msg :%d str_str: %d\n",strlen(file_msg), str_str);
-				if(str_str < 0){ 
-                                    printf("Receive Error\n");
-				    break;
-                                }
-                                if(str_str == 0){
-                                    printf("Receive OK\n");
-                                    break;
-                                }
-				fwrite(file_msg, 1, str_str, fp);
+				pos=read(clnt_sock, file_msg, recvRate);
+                                length+=pos;
+				fwrite(file_msg,1,recvRate, fp);
+                                pos=0;
 			}
-
 			fclose(fp);
+                                       
 
 
+                        //file sending        
+                        char send_msg[BUF_SIZE]={NULL}; 
+                        FILE *fd;
+                        fd = fopen(setfname, "rb");
+                        if(fd<0)printf("error");
+			while(Flength<fSize) {
+				pos = fread(send_msg,1,sendRate, fd);
+                                Flength += pos;
+				write(clnt_sock, send_msg, sendRate); 
+                                pos=0;
+			}
+			fclose(fd);
+
+
+
+			/////////////////////
 			pthread_mutex_unlock(&mutx);
-			printf("File data transfered \n");
 
-		}
+             
+			printf("(!Notice)File data transfered \n");
+
+		} // ㄴ 파일전송
 	}
 
-	////////
-	pthread_mutex_lock(&mutx);
+	
+	/*pthread_mutex_lock(&mutx);
 	for(i=0; i<clnt_cnt; i++)   // remove disconnected client
 	{
 		if(clnt_sock==clnt_socks[i])
@@ -146,7 +166,7 @@ void * handle_clnt(void * arg)
 		}
 	}
 	clnt_cnt--;
-	pthread_mutex_unlock(&mutx);
+	pthread_mutex_unlock(&mutx);*/
 	close(clnt_sock);
 	return NULL;
 }
