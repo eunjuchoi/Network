@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <pthread.h>
 	
-#define BUF_SIZE 128
+#define BUF_SIZE 10000
 #define NAME_SIZE 20
 	
 void * send_msg(void * arg);
@@ -47,8 +47,8 @@ int main(int argc, char *argv[])
 	write(sock, name, NAME_SIZE);
 
 	printf("\n\n");
-	printf("CONNECTING..... \n<Menu>\n1.credit\n2.send\n3.transrate\n4.exit\n");
-
+	//printf("CONNECTING..... \n<Menu>\n1.credit\n2.send\n3.transrate\n4.exit\n");
+        printf("<Menu>\nn1.credit\n2.send\n3.exit\n");
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
 	pthread_join(snd_thread, &thread_return);
 	//close(sock);  
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 void * send_msg(void * arg)   // send thread main
 {
 	int sock=*((int*)arg);
-	int Flength = 0;
+	double Flength = 0;
 	int i=0;
 	int fSize = 0;
 	int fEnd = 0;
@@ -66,8 +66,12 @@ void * send_msg(void * arg)   // send thread main
 	char t_msg[BUF_SIZE] = {NULL};
 	char last_msg[BUF_SIZE] = {NULL};
 	char t_name_msg[BUF_SIZE] = {NULL};
+        char file_msg[BUF_SIZE]={NULL};
 	char noUse[BUF_SIZE] = {NULL};
-
+        int sendRate =0;
+        int recvRate = 0;
+        int pos=0;
+        
 	while(1) 
 	{
 		fgets(msg, BUF_SIZE, stdin);
@@ -82,8 +86,9 @@ void * send_msg(void * arg)   // send thread main
 		////////////////////////////////////////////////////////send
 		if(!strcmp(msg,"send\n")) 
 		{
+
 			char filename[BUF_SIZE];
-			char setfname[BUF_SIZE];
+                        char setfname[BUF_SIZE];
 			FILE *fp;
 			FILE *size;
 
@@ -97,15 +102,30 @@ void * send_msg(void * arg)   // send thread main
 				continue;
 			}
 
+
+
+                      
+
 			//transfer send signal
 			write(sock, "send file", BUF_SIZE);
 
-			//file size
+                        //restrict rate
+                        do{
+                        printf("sendRate(byte):");
+                        scanf("%d", &sendRate);
+                        printf("recvRate(byte):"); 
+                        scanf("%d",&recvRate);
+                        }while(sendRate<0||recvRate<0||sendRate>BUF_SIZE||recvRate>BUF_SIZE);
+                        printf("OK\n");
+
+
+
+			//file size computing
 			while(1) {	
-				fEnd = fread(noUse, 1 , BUF_SIZE, size);
+				fEnd = fread(noUse, 1 , sendRate, size); 
 				fSize += fEnd;
 
-				if(fEnd != BUF_SIZE)
+				if(fEnd != sendRate)
 					break;
 			}
 			fclose(size);
@@ -113,35 +133,52 @@ void * send_msg(void * arg)   // send thread main
 			//transfer file size
 			printf("File transfer start \n(File Size : %d Byte)\n", fSize); 
 			write(sock, &fSize, sizeof(int));
-			fSize = 0;
+			
 
-			//transfer setfname
+			//send the setfname,sendRate , recvRate
 			printf("set file name : ");
 			scanf("%s",&setfname);
 			write(sock,setfname,BUF_SIZE);
+                        write(sock,&sendRate,sizeof(int));
+                        write(sock,&recvRate,sizeof(int));
 			
-			//transfer file
+			//send the file
 			fp = fopen(filename, "rb");
-			while(1) {		
-				Flength = fread(t_msg, 1 , BUF_SIZE, fp);
-
-                                if(Flength < 0){
-                                    printf("Sending Fail\n");
-                                    break;
-                                }
-                                if(Flength == 0){
-                                    printf("Sending OK\n");
-                                    break;
-                                }
-
-				write(sock, t_msg, Flength); 
-				printf("%d \n", Flength);
+			while(Flength<fSize) {	
+				pos = fread(file_msg,1,sendRate, fp);
+                                Flength += pos;
+				write(sock, file_msg, sendRate); 
 				//usleep(1000);				///////time
+                                pos=0;
 			}
+
 			fclose(fp);
-			printf("File transfer finish \n");
+
+			printf("File sending finish \n");
+
+                        //recive the file
+                        char msg[BUF_SIZE] ={NULL};
+                        FILE* fd;
+			fd = fopen(setfname, "wb"); 
+                        Flength=0;	
+			while(Flength<fSize)
+			{		
+				pos=read(sock, msg, recvRate);
+                                Flength+=pos;
+				fwrite(msg,1,recvRate, fd);
+                                pos=0;
+			}
+                        printf("File receving finish \n");
+                          
+			fclose(fd);
+
+
+
+
+
                         close(sock);
 		}
+                fSize=0;
 
 		////////////////////////////////////////////////////////credit
 		if(!strcmp(msg,"credit\n"))
@@ -156,14 +193,13 @@ void * send_msg(void * arg)   // send thread main
 			case 20133277:
 				printf("seongsil\n");
 				break;
+                        case 20133231: 
+                                printf("shinseungyeol\n");
 			default:
 				break;
 			}
 		}
-		////////////////////////////////////////////////////////transrate
-		if(!strcmp(msg,"transrate\n"))
-		{
-		}
+		
 	}
 	return NULL;
 }
