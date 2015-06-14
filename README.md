@@ -1,5 +1,14 @@
 
  
+ 
+ Homwork04
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  <compile>  gcc server.c -o server -lpthread 
             gcc client.c -o client -lpthread
             
@@ -18,4 +27,4 @@
               <credit> 
                     credit 
                     2011****
-    
+		  
