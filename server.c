@@ -115,6 +115,7 @@ void * handle_clnt(void * arg)
         int recvRate=0;
         int sendRate=0;
         int Flength=0;
+	int trans=0;
         
         char t_msg[BUF_SIZE] = {NULL};
 	while((str_len=read(clnt_sock, msg, BUF_SIZE))!=0) 
@@ -160,17 +161,18 @@ void * handle_clnt(void * arg)
 				pos = fread(send_msg,1,sendRate, fd);
                                 Flength += pos;
 				write(clnt_sock, send_msg, sendRate); 
+				trans += sendRate;
+				printf("%d/%d bytes transfferd.\n",trans,fSize);
                                 pos=0;
 			}
 			fclose(fd);
-
-
 
 			/////////////////////
 			pthread_mutex_unlock(&mutx);
 
              
 			printf("(!Notice)File data transfered \n");
+			trans = 0;
 
 		} // ㄴ 파일전송
 	}

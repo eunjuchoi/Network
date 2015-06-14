@@ -6,14 +6,14 @@
 #include <sys/socket.h>
 #include <pthread.h>
 	
-#define BUF_SIZE 128
+#define BUF_SIZE 10000
 #define NAME_SIZE 20
 	
 void * send_msg(void * arg);
 void error_handling(char * msg);
 	
-char name[NAME_SIZE]= {NULL};
-char msg[BUF_SIZE] = {NULL};
+char name[NAME_SIZE]={NULL};
+char msg[BUF_SIZE]={NULL};
 int setFName = 0;
 //pthread_mutex_t mutx;
 
@@ -30,8 +30,7 @@ int main(int argc, char *argv[])
 	
 	//pthread_mutex_init(&mutx, NULL);
 	// pthread_mutex_lock(&mutx);
-	// pthread_mutex_unlock(&mutx); 
-	// 뮤텍스 이제 이용가능
+	// pthread_mutex_unlock(&mutx);
 
 	sprintf(name, "%s", argv[3]);
 	sock=socket(PF_INET, SOCK_STREAM, 0);
@@ -44,21 +43,21 @@ int main(int argc, char *argv[])
 	if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))==-1)
 		error_handling("connect() error");
 
+	//transfer client name
 	write(sock, name, NAME_SIZE);
-	// ㄴ 이름을 서버쪽으로 보냄.
 
 	printf("\n\n");
-	printf("CONNECTING..... \n<Menu>\n1.credit\n2.send\n3.exit\n");
-
+	//printf("CONNECTING..... \n<Menu>\n1.credit\n2.send\n3.transrate\n4.exit\n");
+        printf("<Menu>\n1.credit\n2.send\n3.exit\n");
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
 	pthread_join(snd_thread, &thread_return);
-	close(sock);  
+	//close(sock);  
 	return 0;
 }
 void * send_msg(void * arg)   // send thread main
 {
 	int sock=*((int*)arg);
-	int Flength = 0;
+	double Flength = 0;
 	int i=0;
 	int fSize = 0;
 	int fEnd = 0;
@@ -67,12 +66,12 @@ void * send_msg(void * arg)   // send thread main
 	char t_msg[BUF_SIZE] = {NULL};
 	char last_msg[BUF_SIZE] = {NULL};
 	char t_name_msg[BUF_SIZE] = {NULL};
+        char file_msg[BUF_SIZE]={NULL};
 	char noUse[BUF_SIZE] = {NULL};
-	const char enter[BUF_SIZE] = {"\n"};
-	const char whisper[BUF_SIZE] = {"/whisper\n"};
-
-	// ㄴ (진행중)
-
+        int sendRate =0;
+        int recvRate = 0;
+        int pos=0;
+        int trans = 0;
 
 	while(1) 
 	{
@@ -88,8 +87,9 @@ void * send_msg(void * arg)   // send thread main
 		////////////////////////////////////////////////////////send
 		if(!strcmp(msg,"send\n")) 
 		{
+
 			char filename[BUF_SIZE];
-			char setfname[BUF_SIZE];
+                        char setfname[BUF_SIZE];
 			FILE *fp;
 			FILE *size;
 
@@ -103,47 +103,86 @@ void * send_msg(void * arg)   // send thread main
 				continue;
 			}
 
+
+
+                      
+
 			//transfer send signal
 			write(sock, "send file", BUF_SIZE);
 
-			//file size
+                        //restrict rate
+                        do{
+			printf("\n(Max transfer rate is 10000 bytes/sec.)\n");
+                        printf("sendRate(byte):");
+                        scanf("%d", &sendRate);
+                        printf("recvRate(byte):"); 
+                        scanf("%d",&recvRate);
+                        }while(sendRate<0||recvRate<0||sendRate>BUF_SIZE||recvRate>BUF_SIZE);
+                        printf("OK\n");
+
+
+
+			//file size computing
 			while(1) {	
-				fEnd = fread(noUse, 1 , BUF_SIZE, size);
+				fEnd = fread(noUse, 1 , sendRate, size); 
 				fSize += fEnd;
 
-				if(fEnd != BUF_SIZE)
+				if(fEnd != sendRate)
 					break;
 			}
 			fclose(size);
 
 			//transfer file size
 			printf("File transfer start \n(File Size : %d Byte)\n", fSize); 
-			write(sock, &fSize, sizeof(int)); // 파일 크기정보 먼저 보냄.
-			fSize = 0;
+			write(sock, &fSize, sizeof(int));
+			
 
-			//transfer setfname
+			//send the setfname,sendRate , recvRate
 			printf("set file name : ");
 			scanf("%s",&setfname);
 			write(sock,setfname,BUF_SIZE);
+                        write(sock,&sendRate,sizeof(int));
+                        write(sock,&recvRate,sizeof(int));
 			
-			//transfer file
+			//send the file
 			fp = fopen(filename, "rb");
-			while(1) {		
-				Flength = fread(t_msg, 1 , BUF_SIZE, fp);
-
-				if(Flength != BUF_SIZE) {
-					for(i=0; i<Flength; i++) {
-						last_msg[i] = t_msg[i];
-					} 
-					write(sock, last_msg, BUF_SIZE);
-					write(sock, "file end", BUF_SIZE);
-					break;
-				}
-				write(sock, t_msg, BUF_SIZE); 
+			while(Flength<fSize) {	
+				pos = fread(file_msg,1,sendRate, fp);
+                                Flength += pos;
+				write(sock, file_msg, sendRate);
+				trans+=sendRate;
+				printf("%d/%d bytes transfferd.\n",trans,fSize);
+				sleep(1);				///////time
+                                pos=0;
 			}
+
 			fclose(fp);
-			printf("File transfer finish \n");			
+			printf("File sending finish \n");
+			trans = 0;
+
+                        //recive the file
+                        char msg[BUF_SIZE] ={NULL};
+                        FILE* fd;
+			fd = fopen(setfname, "wb"); 
+                        Flength=0;	
+			while(Flength<fSize)
+			{		
+				pos=read(sock, msg, recvRate);
+                                Flength+=pos;
+				fwrite(msg,1,recvRate, fd);
+                                pos=0;
+			}
+                        printf("File receving finish \n");
+                          
+			fclose(fd);
+
+
+
+
+
+                        close(sock);
 		}
+                fSize=0;
 
 		////////////////////////////////////////////////////////credit
 		if(!strcmp(msg,"credit\n"))
@@ -152,13 +191,22 @@ void * send_msg(void * arg)   // send thread main
 			scanf("%d", &id);
 			switch(id)
 			{
-			case 20123423:
-				printf("hi\n");
+                            case 20103154:
+                                printf("20103154 Kim Youngho modified file send size to same size with original file, and some other thing.\n");                              break;
+			    case 20123423:
+				printf("20123423 Choi eun ju made multiple people can access to a server and transmit file from clients to a server.\n");
 				break;
-			default:
+		    	    case 20133277:
+				printf("Heo Seongsil try to send received file again server to client\n");
 				break;
+                            case 20133231: 
+                                printf("Shin Seungyeol make a coding  for transmission, restricting rate, multiplexing.\n");
+				break;
+                            default: 
+                                printf("student id error\n");
 			}
 		}
+		
 	}
 	return NULL;
 }

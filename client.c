@@ -71,7 +71,8 @@ void * send_msg(void * arg)   // send thread main
         int sendRate =0;
         int recvRate = 0;
         int pos=0;
-        
+        int trans = 0;
+
 	while(1) 
 	{
 		fgets(msg, BUF_SIZE, stdin);
@@ -111,6 +112,7 @@ void * send_msg(void * arg)   // send thread main
 
                         //restrict rate
                         do{
+			printf("\n(Max transfer rate is 10000 bytes/sec.)\n");
                         printf("sendRate(byte):");
                         scanf("%d", &sendRate);
                         printf("recvRate(byte):"); 
@@ -147,14 +149,16 @@ void * send_msg(void * arg)   // send thread main
 			while(Flength<fSize) {	
 				pos = fread(file_msg,1,sendRate, fp);
                                 Flength += pos;
-				write(sock, file_msg, sendRate); 
-				//usleep(1000);				///////time
+				write(sock, file_msg, sendRate);
+				trans+=sendRate;
+				printf("%d/%d bytes transfferd.\n",trans,fSize);
+				sleep(1);				///////time
                                 pos=0;
 			}
 
 			fclose(fp);
-
 			printf("File sending finish \n");
+			trans = 0;
 
                         //recive the file
                         char msg[BUF_SIZE] ={NULL};
@@ -190,7 +194,7 @@ void * send_msg(void * arg)   // send thread main
                             case 20103154:
                                 printf("20103154 Kim Youngho modified file send size to same size with original file, and some other thing.\n");                              break;
 			    case 20123423:
-				printf("hi\n");
+				printf("20123423 Choi eun ju made multiple people can access to a server and transmit file from clients to a server.\n");
 				break;
 		    	    case 20133277:
 				printf("Heo Seongsil try to send received file again server to client\n");
