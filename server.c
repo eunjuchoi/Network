@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <ctype.h>
 #include <netdb.h>
+#include <errno.h>
 #define BUF_SIZE 10000
 #define MAX_CLNT 2
 #define NAME_SIZE 20
@@ -67,7 +68,7 @@ int main(int argc, char *argv[])
                          printf("interrupted system call\n");
                         continue;
                         }
-                   something is very wrong! 
+                  // something is very wrong! 
                 perror("select");
                 exit(1);
                 }

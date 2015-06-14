@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
 	printf("\n\n");
 	//printf("CONNECTING..... \n<Menu>\n1.credit\n2.send\n3.transrate\n4.exit\n");
-        printf("<Menu>\nn1.credit\n2.send\n3.exit\n");
+        printf("<Menu>\n1.credit\n2.send\n3.exit\n");
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
 	pthread_join(snd_thread, &thread_return);
 	//close(sock);  
@@ -187,15 +187,18 @@ void * send_msg(void * arg)   // send thread main
 			scanf("%d", &id);
 			switch(id)
 			{
-			case 20123423:
+                            case 20103154:
+                                printf("20103154 Kim Youngho modified file send size to same size with original file, and some other thing.");
+                                break;
+			    case 20123423:
 				printf("hi\n");
 				break;
-			case 20133277:
+		    	    case 20133277:
 				printf("seongsil\n");
 				break;
-                        case 20133231: 
+                            case 20133231: 
                                 printf("shinseungyeol\n");
-			default:
+			    default:
 				break;
 			}
 		}
