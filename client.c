@@ -198,6 +198,8 @@ void * send_msg(void * arg)   // send thread main
                             case 20133231: 
                                 printf("Shin Seungyeol make a coding  for transmission, restricting rate, multiplexing.\n");
 				break;
+			    case 20103302:
+			        printf("I confirm the result by checking the time .\n");
                             default: 
                                 printf("student id error\n");
 			}
