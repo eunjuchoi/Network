@@ -163,6 +163,7 @@ void * handle_clnt(void * arg)
 				write(clnt_sock, send_msg, sendRate); 
 				trans += sendRate;
 				printf("%d/%d bytes transfferd.\n",trans,fSize);
+				sleep(1);
                                 pos=0;
 			}
 			fclose(fd);

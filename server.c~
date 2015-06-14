@@ -6,8 +6,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
-
-#define BUF_SIZE 128
+#include <ctype.h>
+#include <netdb.h>
+#include <errno.h>
+#define BUF_SIZE 10000
 #define MAX_CLNT 2
 #define NAME_SIZE 20
 
@@ -28,6 +30,13 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serv_adr, clnt_adr;
 	int clnt_adr_sz;
 	pthread_t t_id;
+
+        fd_set  mask,rmask; //change
+        static struct timeval timeout = { 5, 0 }; /* 5 seconds */
+        int nfound;  
+        int maxfd;
+
+
 	if(argc!=2) {
 		printf("Usage : %s <port>\n", argv[0]);
 		exit(1);
@@ -46,8 +55,23 @@ int main(int argc, char *argv[])
 	if(listen(serv_sock, 5)==-1)
 		error_handling("listen() error");
 	
+        FD_ZERO(&mask);
+        FD_SET(serv_sock, &mask);
+        maxfd = serv_sock;
 	while(1)
 	{
+
+                rmask = mask;
+                nfound = select(maxfd+1, &rmask, (fd_set *)0, (fd_set *)0, &timeout);
+                if (nfound < 0) {
+                  if (errno == EINTR) {
+                         printf("interrupted system call\n");
+                        continue;
+                        }
+                  // something is very wrong! 
+                perror("select");
+                exit(1);
+                }
 		clnt_adr_sz=sizeof(clnt_adr);
 		clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_adr,&clnt_adr_sz);
 	
@@ -63,11 +87,10 @@ int main(int argc, char *argv[])
 		clnt_socks[clnt_cnt]=clnt_sock;
 		read(clnt_sock, clnt_name, NAME_SIZE);		
 		strcpy(clnt_names[clnt_cnt++], clnt_name);
-		// ¤¤ Å¬¶óÀÌ¾ðÆ®·ÎºÎÅÍ ¹ÞÀº Á¢¼ÓÀÚ ÀÌ¸§ÀÔ·Â
+		// ã„´ í´ë¼ì´ì–¸íŠ¸ë¡œë¶€í„° ë°›ì€ ì ‘ì†ìž ì´ë¦„ìž…ë ¥
 		pthread_mutex_unlock(&mutx);
 
 		
-	
 		pthread_create(&t_id, NULL, handle_clnt, (void*)&clnt_sock);
 		pthread_detach(t_id);
 		printf("Connected client IP: %s \n", inet_ntoa(clnt_adr.sin_addr));
@@ -87,7 +110,14 @@ void * handle_clnt(void * arg)
 	char msg[BUF_SIZE] = {NULL};
 	char file_msg[BUF_SIZE] = {NULL};
 	char setfname[BUF_SIZE] = {NULL};
-
+        int length =0;
+        int pos=0;
+        int recvRate=0;
+        int sendRate=0;
+        int Flength=0;
+	int trans=0;
+        
+        char t_msg[BUF_SIZE] = {NULL};
 	while((str_len=read(clnt_sock, msg, BUF_SIZE))!=0) 
 	{
 
@@ -97,35 +127,58 @@ void * handle_clnt(void * arg)
 			int fileGo = NULL;
 			char tmpName[NAME_SIZE]= {NULL};
 
-			//receive file size, name
+			//receive file size, name , rate
 			read(clnt_sock, &fSize, sizeof(int));
 			printf("File size %d Byte\n", fSize);
 			read(clnt_sock, setfname, BUF_SIZE);
+                        read(clnt_sock,&recvRate, sizeof(int));
+                        read(clnt_sock,&sendRate, sizeof(int));
+                 
+
 			printf("received file name : %s\n",setfname);
-			
+			 
+                       //file receving 
 			FILE *fp;
 			fp = fopen(setfname, "wb"); 
-		
-			while(1)
+                        	
+			while(length<fSize)
 			{		
-				read(clnt_sock, file_msg, BUF_SIZE);
-				if(!strcmp(file_msg, Fmsg_end)) 
-					break;
-				fwrite(file_msg, 1, BUF_SIZE, fp);
+				pos=read(clnt_sock, file_msg, recvRate);
+                                length+=pos;
+				fwrite(file_msg,1,recvRate, fp);
+                                pos=0;
 			}
-
 			fclose(fp);
+                                       
+
+
+                        //file sending        
+                        char send_msg[BUF_SIZE]={NULL}; 
+                        FILE *fd;
+                        fd = fopen(setfname, "rb");
+                        if(fd<0)printf("error");
+			while(Flength<fSize) {
+				pos = fread(send_msg,1,sendRate, fd);
+                                Flength += pos;
+				write(clnt_sock, send_msg, sendRate); 
+				trans += sendRate;
+				printf("%d/%d bytes transfferd.\n",trans,fSize);
+                                pos=0;
+			}
+			fclose(fd);
+
 			/////////////////////
-
-
 			pthread_mutex_unlock(&mutx);
-			printf("(!Notice)File data transfered \n");
 
-		} // ¤¤ ÆÄÀÏÀü¼Û
+             
+			printf("(!Notice)File data transfered \n");
+			trans = 0;
+
+		} // ã„´ íŒŒì¼ì „ì†¡
 	}
 
 	
-	pthread_mutex_lock(&mutx);
+	/*pthread_mutex_lock(&mutx);
 	for(i=0; i<clnt_cnt; i++)   // remove disconnected client
 	{
 		if(clnt_sock==clnt_socks[i])
@@ -138,7 +191,7 @@ void * handle_clnt(void * arg)
 		}
 	}
 	clnt_cnt--;
-	pthread_mutex_unlock(&mutx);
+	pthread_mutex_unlock(&mutx);*/
 	close(clnt_sock);
 	return NULL;
 }
