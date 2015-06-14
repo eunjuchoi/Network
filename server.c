@@ -6,7 +6,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
-
+#include <ctype.h>
+#include <netdb.h>
 #define BUF_SIZE 10000
 #define MAX_CLNT 2
 #define NAME_SIZE 20
@@ -28,6 +29,13 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serv_adr, clnt_adr;
 	int clnt_adr_sz;
 	pthread_t t_id;
+
+        fd_set  mask,rmask; //change
+        static struct timeval timeout = { 5, 0 }; /* 5 seconds */
+        int nfound;  
+        int maxfd;
+
+
 	if(argc!=2) {
 		printf("Usage : %s <port>\n", argv[0]);
 		exit(1);
@@ -46,8 +54,23 @@ int main(int argc, char *argv[])
 	if(listen(serv_sock, 5)==-1)
 		error_handling("listen() error");
 	
+        FD_ZERO(&mask);
+        FD_SET(serv_sock, &mask);
+        maxfd = serv_sock;
 	while(1)
 	{
+
+                rmask = mask;
+                nfound = select(maxfd+1, &rmask, (fd_set *)0, (fd_set *)0, &timeout);
+                if (nfound < 0) {
+                  if (errno == EINTR) {
+                         printf("interrupted system call\n");
+                        continue;
+                        }
+                   something is very wrong! 
+                perror("select");
+                exit(1);
+                }
 		clnt_adr_sz=sizeof(clnt_adr);
 		clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_adr,&clnt_adr_sz);
 	
@@ -67,7 +90,6 @@ int main(int argc, char *argv[])
 		pthread_mutex_unlock(&mutx);
 
 		
-	
 		pthread_create(&t_id, NULL, handle_clnt, (void*)&clnt_sock);
 		pthread_detach(t_id);
 		printf("Connected client IP: %s \n", inet_ntoa(clnt_adr.sin_addr));
