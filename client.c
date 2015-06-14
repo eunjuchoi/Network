@@ -188,8 +188,7 @@ void * send_msg(void * arg)   // send thread main
 			switch(id)
 			{
                             case 20103154:
-                                printf("20103154 Kim Youngho modified file send size to same size with original file, and some other thing.");
-                                break;
+                                printf("20103154 Kim Youngho modified file send size to same size with original file, and some other thing.\n");                              break;
 			    case 20123423:
 				printf("hi\n");
 				break;
@@ -197,9 +196,10 @@ void * send_msg(void * arg)   // send thread main
 				printf("Heo Seongsil try to send received file again server to client\n");
 				break;
                             case 20133231: 
-                                printf("shinseungyeol\n");
-			    default:
+                                printf("Shin Seungyeol make a coding  for transmission, restricting rate, multiplexing.\n");
 				break;
+                            default: 
+                                printf("student id error\n")
 			}
 		}
 		
