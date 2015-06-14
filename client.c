@@ -199,7 +199,7 @@ void * send_msg(void * arg)   // send thread main
                                 printf("Shin Seungyeol make a coding  for transmission, restricting rate, multiplexing.\n");
 				break;
                             default: 
-                                printf("student id error\n")
+                                printf("student id error\n");
 			}
 		}
 		
