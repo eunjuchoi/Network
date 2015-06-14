@@ -194,7 +194,7 @@ void * send_msg(void * arg)   // send thread main
 				printf("hi\n");
 				break;
 		    	    case 20133277:
-				printf("seongsil\n");
+				printf("Heo Seongsil try to send received file again server to client\n");
 				break;
                             case 20133231: 
                                 printf("shinseungyeol\n");
